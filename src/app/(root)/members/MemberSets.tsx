@@ -1,20 +1,72 @@
-import React, {useState} from 'react'
-import Image from 'next/image';
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
 
 import { HiBarsArrowDown, HiBarsArrowUp } from "react-icons/hi2";
-import {delay, motion} from 'framer-motion';
+import { motion } from "framer-motion";
+import { ImageKitFile, Member } from "./types";
+import { createMembers } from "./utils";
 
 interface MemberSetsProps {
-    members: any[]; 
-    year: string;
-  }
-
+  year: string;
+  folder: string;
+}
 
 const buttonStyle = {scale:'2', marginRight:'10px'};
 
-function MemberSets({members, year}: MemberSetsProps) {
-
+function MemberSets({ year, folder }: MemberSetsProps) {
+    const [images, setImages] = useState<ImageKitFile[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [hasFetched, setHasFetched] = useState(false);
     const [Open, setOpen] = useState(year=='Orion'?true:false);
+
+    useEffect(() => {
+      if (!Open || hasFetched) {
+        return;
+      }
+
+      let isMounted = true;
+
+      const fetchImages = async () => {
+        try {
+          setIsLoading(true);
+          setErrorMsg(null);
+
+          const response = await fetch(`/api/members?folder=${folder}`);
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(
+              errData.message || `HTTP error ${response.status}`,
+            );
+          }
+
+          const fetchedImages = await response.json() as ImageKitFile[];
+          if (isMounted) {
+            setImages(fetchedImages);
+            setHasFetched(true);
+          }
+        } catch (err: unknown) {
+          if (isMounted) {
+            console.error("ImageKit fetch error:", err);
+            setErrorMsg(
+              err instanceof Error
+                ? err.message
+                : "Failed to load images.",
+            );
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      fetchImages();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [Open, folder, hasFetched]);
 
   return (
     <main className='mt-[5px] h-full'>
@@ -32,7 +84,20 @@ function MemberSets({members, year}: MemberSetsProps) {
         </div>
         
 
-        <CardSets members={members} state={Open}/>
+        {Open && isLoading && (
+          <p className="text-white text-center font-jetbrains-mono">
+            Loading images...
+          </p>
+        )}
+        {Open && errorMsg && (
+          <p className="text-red-400 text-center font-jetbrains-mono">
+            {errorMsg}
+          </p>
+        )}
+        <CardSets
+          members={createMembers(images)}
+          state={Open && !isLoading && !errorMsg}
+        />
 
   </main>
   )
@@ -41,7 +106,7 @@ function MemberSets({members, year}: MemberSetsProps) {
 export default MemberSets
 
 
-function CardSets({members, state}: any, boolean: any) {
+function CardSets({ members, state }: { members: Member[]; state: boolean }) {
   return (
     <motion.div
     animate={state ? "open" : "closed"}
@@ -52,18 +117,18 @@ function CardSets({members, state}: any, boolean: any) {
             <div
             key={index}
             className="bg-gray-600 shadow-md rounded-lg p-4 backdrop-blur-md bg-opacity-30 border-2 border-white/[0.2] ">
-            <div className="header h-72 bg-gray-200 rounded-md mb-4 backdrop-blur-md bg-opacity-60">
+            <div className="header relative h-72 bg-gray-200 rounded-md mb-4 backdrop-blur-md bg-opacity-60">
                 <Image
                 src={member.image}
                 alt={member.name}
                 layout="fill"
                 objectFit="cover"
                 className="rounded-md"
+                loading="lazy"
                 />
             </div>
     
             <h2 className="font-jetbrains-mono font-bold text-neutral-200 dark:text-neutral-200 mb-2 mt-2">{member.name}</h2>
-            <p className="font-sans font-normal text-teal-400 text-xs dark:text-neutral-300">{member.description}</p>
             <div className="flex space-x-4 mt-4 mb-4">
                 <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="mr-2">
                 <img src="linkedin.png" alt="LinkedIn" className="w-4 h-4" />

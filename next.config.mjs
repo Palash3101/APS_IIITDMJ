@@ -2,6 +2,14 @@
 import path from 'path';
 
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+      },
+    ],
+  },
   webpack(config, { isServer }) {
     config.module.rules.push({
       test: /\.svg$/,
