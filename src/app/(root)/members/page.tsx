@@ -9,6 +9,7 @@ import MemberSets from "./MemberSets";
 
 const Members = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const [finalYear, setFinalYear] = useState<number | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -23,6 +24,17 @@ const Members = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  useEffect(()=>{
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // Months are zero-based, so add 1
+    if (currentMonth <= 6){
+      setFinalYear(currentYear - 4);
+    }
+    else{
+      setFinalYear(currentYear - 3);
+    }
+  }, [])
 
   const router = useRouter();
 
@@ -55,11 +67,15 @@ const Members = () => {
           THE CREW
         </h1>
 
-        <div className="max-w-6xl mx-auto mb-10 px-4">
-          <MemberSets year="Orion" folder="2021" />
-          <MemberSets year="Lyra" folder="2022" />
-        </div>
-
+        {
+          finalYear && (
+            <div className="max-w-6xl mx-auto mb-10 px-4">
+              <MemberSets year="Orion" folder={String(finalYear)} />
+              <MemberSets year="Leo" folder={String(finalYear+1)} />
+              <MemberSets year="Canis Majoris" folder={String(finalYear+2)} />
+            </div>
+          )
+        }
         <hr className="border-2 border-white w-full mx-auto" />
       </div>
       <div className="abouttext flex flex-col md:flex-row justify-center">
